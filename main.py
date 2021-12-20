@@ -1,25 +1,32 @@
 from tkinter import *
 import pandas
+import random
 
 BACKGROUND_COLOR = "#B1DDC6"
 FONT_LABEL = ("Ariel", 40, "italic")
 FONT_WORD = ("Ariel", 60, "bold")
+data_to_learn = {}
+word = {}
 
 
 # ---------------------------- DATA MGMT ----------------------------------------- #
-data = pandas.read_csv("data/french_words.csv")
-question_row = pandas.DataFrame()
-# data = pandas.read_csv("data/french_words.csv").to_dict(orient="records")
+try:
+    data = pandas.read_csv("data/words_to_learn.csv")
+except FileNotFoundError:
+    original_data = pandas.read_csv("data/french_words.csv")
+    data_to_learn = original_data.to_dict(orient="records")
+else:
+    data_to_learn = data.to_dict(orient="records")
 
 
 def word_setup():
-    global question_row, flip_timer
+    global word, flip_timer
     window.after_cancel(flip_timer)
-    question_word = question_row["French"].item()
+    word = data_to_learn[random.randint(0, len(data_to_learn) - 1)]
+    french_word = word["French"]
     canvas.itemconfig(question_label, text="French", fill="black")
     canvas.itemconfig(canvas_image, image=image_card_front)
-    # random_word = random.choice(data)["French"]
-    canvas.itemconfig(question_word_placeholder, text=question_word, fill="black")
+    canvas.itemconfig(question_word_placeholder, text=french_word, fill="black")
     flip_timer = window.after(3000, func=flip_card)
 
 
@@ -27,9 +34,17 @@ def word_setup():
 def flip_card():
     canvas.itemconfig(canvas_image, image=image_card_back)
     canvas.itemconfig(question_label, text="English", fill="white")
-    global question_row
-    question_translation = question_row["English"].item()
-    canvas.itemconfig(question_word_placeholder, text=question_translation, fill="white")
+    global word
+    english_word = word["English"]
+    canvas.itemconfig(question_word_placeholder, text=english_word, fill="white")
+
+
+def is_known():
+    global word, data
+    data_to_learn.remove(word)
+    data = pandas.DataFrame(data_to_learn)
+    data.to_csv("data/words_to_learn.csv", index=False)
+    word_setup()
 
 
 # ---------------------------- UI SETUP ----------------------------------------- #
@@ -50,7 +65,7 @@ word_setup()
 
 # Button right
 image_right = PhotoImage(file="images/right.png")
-button_right = Button(image=image_right, highlightthickness=0, command=word_setup)
+button_right = Button(image=image_right, highlightthickness=0, command=is_known)
 button_right.grid(row=1, column=0)
 
 # Button wrong
